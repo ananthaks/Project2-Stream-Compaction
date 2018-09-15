@@ -23,18 +23,18 @@ namespace StreamCompaction {
 		 */
 		__global__ void kernScan(int n, int power, int* outputData, int* inputData)
         {
-			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+	        const int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 
 			// Fetch it once
-			const int currData = inputData[index];
+			const auto curr_data = inputData[index];
 
 			if(index >= power)
 			{
-				outputData[index] = inputData[index - power] + currData;
+				outputData[index] = inputData[index - power] + curr_data;
 			}
 			else
 			{
-				outputData[index] = currData;
+				outputData[index] = curr_data;
 			}
         }
 
@@ -43,7 +43,7 @@ namespace StreamCompaction {
 		 */
 		__global__ void kernMakeExclusive(int n, int* outputData, int* inputData)
 		{
-			int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+			const int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 
 			outputData[index] = index != 0 ? inputData[index - 1] : 0;
 		}
@@ -54,31 +54,31 @@ namespace StreamCompaction {
         void scan(int n, int *odata, const int *idata) 
     	{
 			// 1. Allocate the memory in device
-			cudaMalloc((void**)&device_iData, n * (sizeof(int)));
-			cudaMalloc((void**)&device_oData, n * (sizeof(int)));
+			cudaMalloc(reinterpret_cast<void**>(&device_iData), n * (sizeof(int)));
+			cudaMalloc(reinterpret_cast<void**>(&device_oData), n * (sizeof(int)));
 			cudaMemcpy(device_iData, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
 			cudaDeviceSynchronize();
 
         	timer().startGpuTimer();
 
 			// 2. Compute Block count
-			dim3 numBlocks((n + blockSize - 1) / blockSize);
+			dim3 num_blocks((n + blockSize - 1) / blockSize);
 			
 			// 3. Call the kernel
-			const int logn = ilog2ceil(n);
-			for (int i = 1; i <= logn; ++i)
+			const auto logn = ilog2ceil(n);
+			for (auto i = 1; i <= logn; ++i)
 			{
-				const int power = 1 << (i - 1);
-				kernScan << < numBlocks, blockSize >> > (n, power, device_oData, device_iData);
+				const auto power = 1 << (i - 1);
+				kernScan << < num_blocks, blockSize >> > (n, power, device_oData, device_iData);
 				
 				// Swap
-				int* temp = device_iData;
+				const auto temp = device_iData;
 				device_iData = device_oData;
 				device_oData = temp;
 			}
 
 			// Make it exclusive as we need that for stream compaction later on
-			kernMakeExclusive <<< numBlocks, blockSize >> > (n, device_oData, device_iData);
+			kernMakeExclusive <<< num_blocks, blockSize >> > (n, device_oData, device_iData);
 
             timer().endGpuTimer();
 
