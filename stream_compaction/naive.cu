@@ -18,6 +18,18 @@ namespace StreamCompaction {
 
 #define blockSize 128
 
+		void printArray(int n, int *a, bool abridged = false) {
+			printf("    [ ");
+			for (int i = 0; i < n; i++) {
+				if (abridged && i + 2 == 15 && n > 16) {
+					i = n - 2;
+					printf("... ");
+				}
+				printf("%3d ", a[i]);
+			}
+			printf("]\n");
+		}
+
 		/**
 		 * Kernel to perform a Naive scan on a integer array
 		 */
@@ -84,6 +96,8 @@ namespace StreamCompaction {
 
 			cudaDeviceSynchronize();
 			cudaMemcpy(odata, device_oData, sizeof(int) * n, cudaMemcpyDeviceToHost);
+
+			printArray(n, odata, true);
 
 			// 4. Free up any gpu memory
 			cudaFree(device_iData);
