@@ -88,44 +88,60 @@ namespace StreamCompaction {
 			outputData[index] = index != 0 ? inputData[index - 1] : 0;
 		}
 
+
+		inline int RoundToPower2(int n)
+		{
+			int start = 2;
+
+			while(start <= n)
+			{
+				start *= 2;
+			}
+			return start;
+		}
+
+
         /**
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
         void scan(int n, int *odata, const int *idata) 
     	{
+			const int numElements = RoundToPower2(n);
+			const int numTotalBytes = numElements * sizeof(int);
+			const int numActualBytes = n * sizeof(int);
+
 			// 1. Allocate the memory in device
-			cudaMalloc(reinterpret_cast<void**>(&device_iData), n * sizeof(int));
-			cudaMalloc(reinterpret_cast<void**>(&device_oData), n * sizeof(int));
-			cudaMemcpy(device_iData, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
-			cudaMemcpy(device_oData, idata, sizeof(int) * n, cudaMemcpyHostToDevice);
+			cudaMalloc(reinterpret_cast<void**>(&device_oData), numTotalBytes);
+			cudaMemcpy(device_oData, idata, numActualBytes, cudaMemcpyHostToDevice);
+
 			cudaDeviceSynchronize();
 
 			timer().startGpuTimer();
 
 			// 2. Compute Block count
-			dim3 num_blocks((n + blockSize - 1) / blockSize);
+			dim3 num_blocks((numElements + blockSize - 1) / blockSize);
 
 			// 3. Call the kernel
-			const int log_n = ilog2ceil(n);
+			const int log_n = ilog2ceil(numElements);
 			// 3a. UpSweep
 			int power_2 = 1;
 			for(int d = 0; d < log_n; ++d)
 			{
 				power_2 = (1 << d);
-				kernUpSweep << < num_blocks, blockSize >> > (n, power_2, device_oData);
+				kernUpSweep << < num_blocks, blockSize >> > (numElements, power_2, device_oData);
 			}
 			
 			// 3b. DownSweep
 			for (int d = log_n - 1; d >= 0; --d)
 			{
 				power_2 = (1 << d);
-				kernDownSweep << < num_blocks, blockSize >> > (n, power_2, device_oData);
+				kernDownSweep << < num_blocks, blockSize >> > (numElements, power_2, device_oData);
 			}
 
 			timer().endGpuTimer();
 
 			cudaDeviceSynchronize();
-			cudaMemcpy(odata, device_oData, sizeof(int) * n, cudaMemcpyDeviceToHost);
+			cudaMemcpy(odata, device_oData, numActualBytes, cudaMemcpyDeviceToHost);
 
 			// 4. Free up any gpu memory
 			cudaFree(device_iData);
@@ -141,9 +157,9 @@ namespace StreamCompaction {
          * @param idata  The array of elements to compact.
          * @returns      The number of elements remaining after compaction.
          */
-        int compact(int n, int *odata, const int *idata) {
+        int compact(int n, int *odata, const int *idata) 
+    	{
             timer().startGpuTimer();
-            // TODO
             timer().endGpuTimer();
             return -1;
         }
