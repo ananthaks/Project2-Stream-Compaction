@@ -20,7 +20,6 @@ namespace StreamCompaction {
 
 #define blockSize 128
 
-
 		void printArray(int n, const int *a, bool abridged = false) {
 			
 			if("    [ ");

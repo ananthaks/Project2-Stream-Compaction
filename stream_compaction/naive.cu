@@ -92,9 +92,9 @@ namespace StreamCompaction {
 			// Make it exclusive as we need that for stream compaction later on
 			kernMakeExclusive <<< num_blocks, blockSize >> > (n, device_oData, device_iData);
 
-            timer().endGpuTimer();
-
 			cudaDeviceSynchronize();
+			timer().endGpuTimer();
+
 			cudaMemcpy(odata, device_oData, sizeof(int) * n, cudaMemcpyDeviceToHost);
 
 			// 4. Free up any gpu memory
