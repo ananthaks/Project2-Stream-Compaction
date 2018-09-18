@@ -16,7 +16,7 @@ namespace StreamCompaction {
 		int *device_iData;
 		int *device_oData;
 
-#define blockSize 128
+#define blockSize 512
 
 		void printArray(int n, int *a, bool abridged = false) {
 			printf("    [ ");

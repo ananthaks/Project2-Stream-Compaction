@@ -20,7 +20,7 @@ namespace StreamCompaction {
 		int* device_iData;
 		int* device_oData;
 
-#define blockSize 128
+#define blockSize 512
 
         /**
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.

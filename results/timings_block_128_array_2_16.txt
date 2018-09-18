@@ -1,0 +1,56 @@
+****************
+** SCAN TESTS **
+****************
+ARRAY SIZE : 65536
+    [  30  47  10  32  37  18   7  42  19   0  28  34  44 ...  28   0 ]
+==== cpu scan, power-of-two ====
+   elapsed time: 0.090786ms    (std::chrono Measured)
+==== cpu scan, non-power-of-two ====
+   elapsed time: 0.088862ms    (std::chrono Measured)
+    passed
+==== naive scan, power-of-two ====
+   elapsed time: 0.118784ms    (CUDA Measured)
+    passed
+==== naive scan, non-power-of-two ====
+   elapsed time: 0.124928ms    (CUDA Measured)
+    passed
+==== work-efficient scan, power-of-two ====
+   elapsed time: 0.18944ms    (CUDA Measured)
+    passed
+==== work-efficient scan, non-power-of-two ====
+   elapsed time: 0.139264ms    (CUDA Measured)
+    passed
+==== thrust scan, power-of-two ====
+   elapsed time: 0.167936ms    (CUDA Measured)
+    passed
+==== thrust scan, power-of-two ====
+   elapsed time: 0.169984ms    (CUDA Measured)
+    passed
+==== thrust scan, non-power-of-two ====
+   elapsed time: 0.15872ms    (CUDA Measured)
+    passed
+
+*****************************
+** STREAM COMPACTION TESTS **
+*****************************
+    [   2   3   0   2   1   0   1   2   1   0   0   2   2 ...   0   0 ]
+==== cpu compact without scan, power-of-two ====
+   elapsed time: 0.143078ms    (std::chrono Measured)
+    [   2   3   2   1   1   2   1   2   2   1   2   2   1 ...   1   1 ]
+    passed
+==== cpu compact without scan, non-power-of-two ====
+   elapsed time: 0.179649ms    (std::chrono Measured)
+    [   2   3   2   1   1   2   1   2   2   1   2   2   1 ...   2   1 ]
+    passed
+==== cpu compact with scan ====
+   elapsed time: 0.38432ms    (std::chrono Measured)
+    [   2   3   2   1   1   2   1   2   2   1   2   2   1 ...   1   1 ]
+    passed
+==== work-efficient compact, power-of-two ====
+  2   3   0   2   1   0   1   2   1   0   0   2   2 ...   0   0 ]
+   elapsed time: 0.4352ms    (CUDA Measured)
+    passed
+==== work-efficient compact, non-power-of-two ====
+  2   3   0   2   1   0   1   2   1   0   0   2   2 ...   2   1 ]
+   elapsed time: 0.393216ms    (CUDA Measured)
+    passed

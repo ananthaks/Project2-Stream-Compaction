@@ -18,7 +18,7 @@ namespace StreamCompaction {
 		int* device_bools;
 		int* device_sortedbools;
 
-#define blockSize 128
+#define blockSize 512
 
 		void printArray(int n, const int *a, bool abridged = false) {
 			

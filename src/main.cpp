@@ -14,8 +14,6 @@
 #include "testing_helpers.hpp"
 #include <iostream>
 
-
-
 int main(int argc, char* argv[]) 
 {
     // Scan tests
