@@ -15,12 +15,15 @@ namespace StreamCompaction {
 		// Global variables
 		int* device_iData;
 		int* device_oData;
+		int* device_bools;
+		int* device_sortedbools;
 
 #define blockSize 128
 
 
 		void printArray(int n, const int *a, bool abridged = false) {
-			printf("    [ ");
+			
+			if("    [ ");
 			for (int i = 0; i < n; i++) {
 				if (abridged && i + 2 == 15 && n > 16) {
 					i = n - 2;
@@ -30,6 +33,20 @@ namespace StreamCompaction {
 			}
 			printf("]\n");
 		}
+
+
+		void PrintCUDAArray(int n, const int* cudaArrayPtr)
+		{
+			cudaDeviceSynchronize();
+
+			int* temp = new int[n];
+			cudaMemcpy(temp, cudaArrayPtr, n * sizeof(n), cudaMemcpyDeviceToHost);
+
+			printArray(n, temp, true);
+
+			delete[] temp;
+		}
+
 
 
 		/**
@@ -159,9 +176,80 @@ namespace StreamCompaction {
          */
         int compact(int n, int *odata, const int *idata) 
     	{
-            timer().startGpuTimer();
-            timer().endGpuTimer();
-            return -1;
+			const int numElements = RoundToPower2(n);
+			const int numTotalBytes = numElements * sizeof(int);
+			const int numActualBytes = n * sizeof(int);
+
+			int* tempHolder = new int[n];
+
+			printArray(n, idata, true);
+
+			// 1. Allocate the memory in device
+			cudaMalloc(reinterpret_cast<void**>(&device_iData), numTotalBytes);
+			cudaMalloc(reinterpret_cast<void**>(&device_oData), numTotalBytes);
+			cudaMalloc(reinterpret_cast<void**>(&device_bools), numTotalBytes);
+			cudaMalloc(reinterpret_cast<void**>(&device_sortedbools), numTotalBytes);
+
+			cudaMemcpy(device_iData, idata, numActualBytes, cudaMemcpyHostToDevice);
+
+			cudaDeviceSynchronize();
+
+			timer().startGpuTimer();
+
+			// 2. Compute Block count
+			dim3 num_blocks((numElements + blockSize - 1) / blockSize);
+
+			// 3. Call the kernel
+
+			// 3a. Map to bools
+			StreamCompaction::Common::kernMapToBoolean << <num_blocks, blockSize >> > (numElements, device_bools, device_iData);
+			cudaMemcpy(device_sortedbools, device_bools, numActualBytes, cudaMemcpyHostToHost);
+
+			// 3b. UpSweep
+			const int log_n = ilog2ceil(numElements);
+			int power_2 = 1;
+			for (int d = 0; d < log_n; ++d)
+			{
+				power_2 = (1 << d);
+				kernUpSweep << < num_blocks, blockSize >> > (numElements, power_2, device_sortedbools);
+			}
+			
+			// 3c. DownSweep
+			for (int d = log_n - 1; d >= 0; --d)
+			{
+				power_2 = (1 << d);
+				kernDownSweep << < num_blocks, blockSize >> > (numElements, power_2, device_sortedbools);
+			}
+
+			// 3d. Compact
+			StreamCompaction::Common::kernScatter << <num_blocks, blockSize >> > (numElements, device_oData, device_iData, device_bools, device_sortedbools);
+
+			// 4. Manually copy from the GPU the bools and check the number of valida values to return
+			cudaDeviceSynchronize();
+			cudaMemcpy(tempHolder, device_bools, numActualBytes, cudaMemcpyDeviceToHost);
+			int count = 0;
+			for(int i = 0; i < n; ++i)
+			{
+				if(tempHolder[i] != 0)
+				{
+					count++;
+				}
+			}
+
+			timer().endGpuTimer();
+
+			// Copy over the results
+			cudaDeviceSynchronize();
+			cudaMemcpy(odata, device_oData, numActualBytes, cudaMemcpyDeviceToHost);
+
+			// 5. Free up any gpu memory
+			cudaFree(device_iData);
+			cudaFree(device_oData);
+			cudaFree(device_bools);
+			cudaFree(device_sortedbools);
+			delete[] tempHolder;
+
+            return (count);
         }
     }
 }

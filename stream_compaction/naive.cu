@@ -97,8 +97,6 @@ namespace StreamCompaction {
 			cudaDeviceSynchronize();
 			cudaMemcpy(odata, device_oData, sizeof(int) * n, cudaMemcpyDeviceToHost);
 
-			printArray(n, odata, true);
-
 			// 4. Free up any gpu memory
 			cudaFree(device_iData);
 			cudaFree(device_oData);

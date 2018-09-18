@@ -6,8 +6,6 @@
 namespace StreamCompaction {
     namespace CPU {
 
-//#define RUN_DEBUG
-
         using StreamCompaction::Common::PerformanceTimer;
         PerformanceTimer& timer()
         {
@@ -85,16 +83,8 @@ namespace StreamCompaction {
 				tempValidator[i] = (idata[i] != 0 ? 1 : 0);
 			}
 
-#ifdef RUN_DEBUG
-			printArray(n, tempValidator, true);
-#endif
-
 			// 2. Perform exclusive scan
 			scan(n, scanArray, tempValidator);
-
-#ifdef RUN_DEBUG
-			printArray(n, odata, true);
-#endif
 
 			// 3. Scatter
 			int outIndex = 0;
